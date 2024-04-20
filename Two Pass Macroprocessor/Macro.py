@@ -10,7 +10,7 @@ mnt = {}
 mdt_copy = []
 
 # Read the source.txt file and store it in temp_input list
-with open('source.txt', 'r') as input_file:
+with open('Two Pass Macroprocessor/source.txt', 'r') as input_file:
     temp_input = [line.strip() for line in input_file]
 
 # PASS 1
