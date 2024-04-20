@@ -55,10 +55,20 @@ def common_subexpression_elimination(input_lines):
     return output_lines
 
 def optimize(input_lines):
+    print("Constant Folding:")
     output_lines = [constant_folding(line) for line in input_lines]
+    for line in output_lines:
+        print(line)
+    print('Constant Propagation: ')
     output_lines = copy_propagation(output_lines)
+    for line in output_lines:
+        print(line)
+    print('Common Subexpression Elimination: ')
     output_lines = common_subexpression_elimination(output_lines)
+    for line in output_lines:
+        print(line)
     # Printing output in the terminal
+    print('Output:')
     for line in output_lines:
         print(line)
 
