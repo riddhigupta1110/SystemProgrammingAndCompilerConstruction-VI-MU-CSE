@@ -54,12 +54,19 @@ def common_subexpression_elimination(input_lines):
         expressions[variable] = expression
     return output_lines
 
-def optimize(input_file, output_file):
-    with open(input_file, 'r') as f:
-        input_lines = f.readlines()
+def optimize(input_lines):
     output_lines = [constant_folding(line) for line in input_lines]
     output_lines = copy_propagation(output_lines)
     output_lines = common_subexpression_elimination(output_lines)
-    with open(output_file, 'w') as f:
-        f.write('\n'.join(output_lines))
-optimize('Code Optimisation/input.txt', 'Code Optimisation/output.txt')
+    # Printing output in the terminal
+    for line in output_lines:
+        print(line)
+
+input_lines = [
+    "T1 = 5 * 3 + 10",
+    "T3 = T1",
+    "T2 = T1 + T3",
+    "T5 = 4 * T2",
+    "T6 = 4 * T2 + 100"
+]
+optimize(input_lines)
