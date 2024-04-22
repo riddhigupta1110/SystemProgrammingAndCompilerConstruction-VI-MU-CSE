@@ -23,10 +23,12 @@ def copy_propagation(input_lines):
         assignment = line.split('=')
         variable = assignment[0].strip()
         expression = assignment[1].strip()
-        modified_expression = ''
+    
         # Check if the expression is already a variable
         if expression in variables.keys():
             replace[variable] = expression
+
+        modified_expression = ''
         separated = separate_vars_operators(expression)
         for exp in separated:
             if (exp in replace.keys()):
@@ -34,6 +36,7 @@ def copy_propagation(input_lines):
                 modified_expression = ''.join(modified_separated)
                 output_lines.append(variable + ' = ' + modified_expression)
                 continue
+
         if modified_expression == '':
             if variable in replace.keys():
                 continue
@@ -48,8 +51,10 @@ def common_subexpression_elimination(input_lines):
         assignment = line.split('=')
         variable = assignment[0].strip()
         expression = assignment[1].strip()
+        
         for var, exp in expressions.items():
             expression = expression.replace(exp, var)
+            
         output_lines.append(variable + ' = ' + expression)
         expressions[variable] = expression
     return output_lines
@@ -59,14 +64,17 @@ def optimize(input_lines):
     output_lines = [constant_folding(line) for line in input_lines]
     for line in output_lines:
         print(line)
+
     print('Constant Propagation: ')
     output_lines = copy_propagation(output_lines)
     for line in output_lines:
         print(line)
+
     print('Common Subexpression Elimination: ')
     output_lines = common_subexpression_elimination(output_lines)
     for line in output_lines:
         print(line)
+
     # Printing output in the terminal
     print('Output:')
     for line in output_lines:

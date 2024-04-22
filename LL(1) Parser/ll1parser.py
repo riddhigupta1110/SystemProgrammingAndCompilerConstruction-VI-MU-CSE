@@ -1,240 +1,281 @@
-#LL1 parser
-#1. Left Factoring
-#2. left recursion
-#3. First
-#4. Follow
-
 import re,os
+
+# global variables
+leftRecursion = []
+leftFactoring = {}
+first = {}
+follow = {}
+
+terminals = []
+variables = []
 
 epsilon = '\u03B5'
 
-def printFF(first,follow,rules):
-    rowFormat = '{:<1} {:<3} {:<2} {:<10} {:<1} {:<15} {:<1} {:<15} {:<1}'
-    for lhs,rhs in rules.items():
-        Fstring = '{'
-        for i in first[lhs]:
-            Fstring = Fstring + i + ","
-        F1string = '{'
-        for i in follow[lhs]:
-            F1string = F1string + i + ","
-        Rstring = ''
-        for i in rules[lhs]:
-            Rstring = Rstring + i + " / "
-        print(rowFormat.format('|',lhs,'->',Rstring[:-2],'|',Fstring[:-1]+'}','|',F1string[:-1]+'}','|',))
-    
+ruleFormat = '{:<2} {:<2} {:<50}'
 
 def printRules(rules):
-    rowFormat = '{:<1} {:<3} {:<3} {:<10} {:<1}'
     for lhs,rhs in rules.items():
-        rString = ''
-        for r in rhs:
-            rString = rString + r + " / "
-        print('-'*22)
-        print(rowFormat.format('|',lhs,'->',rString[:-2],'|'))
-    print('-'*22)
+        rhsString = ""
+        for i in rhs:
+            rhsString = rhsString + i + " | "
+        print(ruleFormat.format(lhs,'-->',rhsString[:-2]))
+    # print("\n")
+
+def printFF(rules):
+    for lhs,rhs in rules.items():
+        rhsString = "{"
+        for i in rhs:
+            rhsString = rhsString + i + " , "
+        rhsString = rhsString[:-2]+"}"
+        print(ruleFormat.format(lhs,'-->',rhsString))
+    # print("\n")
 
 def readFile(fileName):
     rules = {}
-    with open(fileName,'r') as file:
-        fileContent = file.read().split('\n')
-    for line in fileContent:
-        lhs,rhs = line.split('->')
-        rules[lhs] = rhs.split("|")
-        print(rhs.split("|"))
-
-    for lhs,rhs in rules.items():
-        for index,i in enumerate(rhs):
-            if i == "#":
-                rules[lhs][index] = epsilon
-            else:
-                idx = i.find('#')
-                print(i,idx)
-                if idx != -1:
-                    print(rules[lhs][index])
-                    rules[lhs][index] = rules[lhs][index][:idx]+epsilon+rules[lhs][index][idx+1:]
-
-    return rules
-
-def LeftRecursion(rules):
-    lr = []
-    for lhs,rhs in rules.items():
-        if lhs == rhs[0][0]:
-            lr.append(lhs)
-
-    if len(lr) == 0:
-        print('There is no left recursion')
+    try:
+        with open(fileName,'r') as file:
+            # read each line
+            fileContent = file.read().split('\n')
+        for rule in fileContent:
+            # for each line, split into left and right
+            lhs,rhs = rule.split("->")
+            # replace epsilon wwith unicode character
+            if '\\u03B5' in rhs:
+                rhs.replace('\\u03B5',epsilon)
+            rules[lhs] = rhs.split("|")
         return rules
+    except FileNotFoundError:
+        print('File not found error')
 
-    for lhs in lr:
-        alpha = rules[lhs][0][1:]
+def LR_removal(rules):
+    # print('CHECKING FOR LEFT RECURSION')
+    for lhs,rhs in rules.items():
+        # print(lhs,rhs)
+        if lhs == rhs[0][0]:
+            leftRecursion.append(lhs)
+    
+    if not len(leftRecursion):
+        print('\nThere is no left recursion')
+        return rules
+    
+    # left recursion removal
+    for lhs in leftRecursion:
+        alpha = []
+        beta = []
+        # if the first rhs of the rule is single letter 
+        #? eg L -> L
+        if len(rules[lhs][0]) == 1:
+            pass
+        else:
+            # append all the remaining letters of the rhs to the alpha
+            alpha.append(rules[lhs][0][1:])
+        # all the rhs except the one with recursion are added as the beta for new rule
         beta = rules[lhs][1:]
 
-        rules[lhs] = [f"{b}{lhs}`" for b in beta]
-        rules[f"{lhs}`"] = [f"{alpha[0]}{lhs}`",epsilon]
+        # print(alpha,beta)
 
-    return rules
+        #? change the existing rule
+        # new rule is beta followed by the actuall rule NT
+        rules[lhs] = [f'{i}{lhs}`' for i in beta]
+        # new rule is alpha followed by new NT, epsilon
+        rules[f'{lhs}`'] = [f'{alpha[0]}{lhs}`',epsilon]
+    return rules        
 
-def LeftFactoring(rules):
-    lf = {}
+def lfremoval(rules):
+    alpha = []
     for lhs,rhs in rules.items():
         alpha = []
-        for index,r in enumerate(rhs):
+        if len(rhs) == 1:
+            continue
+        for index,right in enumerate(rhs):
             if index == 0:
                 continue
-            temp = os.path.commonprefix([rhs[0],r])
+            # print(os.path.commonprefix([rhs[0],right]))
+            temp =  os.path.commonprefix([rhs[0],right])
             alpha = temp if len(temp) > len(alpha) else alpha
-
-        if len(alpha) != 0:
-            lf[lhs] = alpha
-
-    if len(lf) == 0:
-        print('There is no left Factoring')
+        if len(alpha):
+            leftFactoring[lhs] = alpha
+    
+    if not len(leftFactoring):
+        print('There is no left factoring in the rules')
         return rules
-
-    for lhs,alpha in lf.items():
+    
+    # left factoring removal
+    for lhs,a in leftFactoring.items():
+        alpha = []
         beta = []
         gamma = []
-        beta_pattern = re.compile(f"{re.escape(alpha)}(.*)")
+
+        alpha.append(a)
+        # beta pattern : the part along the alpha in the rules
+        beta_pattern = re.compile(f'{re.escape(alpha[0])}(.*)')
+
+        # iterate through the rules to find beta and gamma
         for rhs in rules[lhs]:
             match = re.match(beta_pattern,rhs)
-            print(match)
-            if match == None:
-                gamma.append(rhs)
-            else:
+            if match:
                 beta.append(match.group(1))
+            else:
+                gamma.append(rhs)
 
-        rules[lhs] = [f"{alpha}{lhs}`"]
+        # creation of new rules
+        rules[lhs] = [f"{alpha[0]}{lhs}`"]
         for i in gamma:
             rules[lhs].append(i)
-        rules[f"{lhs}`"] = [i for i in beta]
+
+        # dash rule
+        rules[f"{lhs}`"] = []
+        for i in beta:
+            rules[f"{lhs}`"].append(i)
+
     return rules
 
 def maintainOrder(rules):
     newRules = {}
     for lhs,rhs in rules.items():
-        if lhs not in newRules:
-            newRules[lhs] = rhs
+        if not lhs in newRules:
+            newRules[lhs] = rules[lhs]
             if f"{lhs}`" in rules:
                 newRules[f"{lhs}`"] = rules[f"{lhs}`"]
     return newRules
 
-def FindFirst(rules):
-    Tpattern = re.compile(r"[a-z]+|\+|\-|\*|\/|\(|\)|\{|\}|\[|\]")
-    NTpattern = re.compile(f'[A-Z]`?')
-    first = {}
+def findFirst(rules):
+    # match the terminals which are between a-z,+, -, *, /, \, (, ),{, }, [, ] or $
+    Tpattern = re.compile("[a-z]+|\+|\-|\*|\/|\(|\)|\{|\}|\$|\[|\]")
+    # match the non terminals with A-Z or A`-Z`` etc, with ` optional
+    NTpattern = re.compile("[A-Z]`?")
     for lhs,rhs in reversed(rules.items()):
-        first[lhs] = []
-        for r in rhs:
-            NTmatch = re.match(NTpattern,r)
+        for i in rhs:   
+            # check if the first character of the rule 
+            # is terminal or not
+            NTmatch = NTpattern.match(i[0])
+            #? first character not a Variable (match failure)
             if NTmatch == None:
-                Tmatch = Tpattern.match(r)
-                if Tmatch == None:
-                    first[lhs].append(epsilon)
-                else:
-                    first[lhs].append(Tmatch[0])
-            else:
-                for i in first[NTmatch[0]]:
-                    first[lhs].append(i)
-    return first
+                # check for match with terminals, obtain the terminal
+                Tmatch = Tpattern.match(i)
+                if not lhs in first:
+                    first[lhs] = []
+                first[lhs].append(Tmatch[0] if Tmatch != None else epsilon)
+            else: #? variable match found
+                if not lhs in first:
+                    first[lhs] = []
+                # append the first of the encountered variable to the
+                # existing lhs being traversed atm
+                for f in first[NTmatch[0]]:
+                    first[lhs].append(f)
+    printFF(first)
 
-def FindFollow(rules):
-    print(rules)
-    Tpattern = re.compile(r"[a-z]+|\+|\-|\*|\/|\(|\)|\{|\}|\[|\]")
-    NTpattern = re.compile(f'[A-Z]`?')
-    follow = {}
-    for LHS,rhs in rules.items():
-        print(follow)
-        if not follow:
-            follow[LHS] = ['$']
-        step = 0 if len(LHS) == 1 else 1
-        valueRet = FollowProcess(LHS,rules)
-        print(LHS,valueRet)
-        if valueRet == None:
-            continue
-        if valueRet[0] == 'append':
-            if LHS not in follow:
-                follow[LHS] = []
-            follow[LHS].append(valueRet[1])
-        elif valueRet[0] == 'follow':
-            if LHS not in follow:
-                follow[LHS] = []
-            for i in follow[valueRet[1]]:
-                follow[LHS].append(i)
-        else:
-            if LHS not in follow:
-                    follow[LHS] = []
-            for i in first[valueRet[2]]:
-                if i != epsilon:
-                    follow[LHS].append(i)
-                else:
-                    ruleCopy = rules[valueRet[1]]
-                    ruleCopy[0].replace(valueRet[2],"")
-                    idx = ruleCopy[0].find(LHS)
-                    try:
-                        if idx+step+1 < len(ruleCopy):
-                            if Tpattern.match(ruleCopy[0][idx+step+1]):
-                                follow[LHS].append(ruleCopy[0][idx+step+1])
-                            else:
-                                var = ruleCopy[0][idx+step+1]
-                                try:
-                                    if ruleCopy[0][idx+step+2] == '`':
-                                        var = f'{ruleCopy[0][idx+step+1]}`'
-                                except:
-                                    print()
-                                for j in first[var]:
-                                    follow[LHS].append(j)
-                        else:
-                            for i in follow[valueRet[1]]:
-                                follow[LHS].append(i)
-                    except:
-                        print()
-    return follow
-
-def FollowProcess(LHS,rules):
-    Tpattern = re.compile(r"[a-z]+|\+|\-|\*|\/|\(|\)|\{|\}|\[|\]")
-    NTpattern = re.compile(f'[A-Z]`?')
+def findFollow(LHS,rules):
+    Tpattern = re.compile("[a-z]+|\+|\-|\*|\/|\(|\)|\{|\}|\$|\[|\]")
     step = 0 if len(LHS) == 1 else 1
     for lhs,rhs in rules.items():
+        index = -1
         if lhs == LHS:
             continue
-        for rule in rhs:
+        for rule in rules[lhs]:
+            # find index of the LHS in the rule
             try:
                 index = rule.find(LHS)
+                # print("->",index,rule,LHS)
                 if index == -1:
                     continue
             except:
-                print()
-
+                print("Error")
+            # check if the var is normal or followed by a `
             try:
+                # if LHS does not contain ` originally skip
                 if len(LHS) == 1 and rule[index+1] == '`':
                     continue
             except:
-                print()
-            print(rule,index)
-            if index+step == len(rule)-1:
-                return ['follow',lhs]   
-            elif index+step+1 < len(rule):
-                Tmatch = Tpattern.match(rule[index+step+1])
-                if Tmatch:
+                print("")
+            
+            # print(index)
+            if index+step == len(rule)-1:    #? the encountered variable is at the last
+                #todo therefore use the follow of the original lhs
+                return ['follow',lhs]
+            #? check if var is followed by var or terminal and return
+            elif index+step < len(rule)-1:
+                #? followed by var
+                if Tpattern.match(rule[index+step+1]):
                     return ['append',rule[index+step+1]]
                 else:
                     try:
                         if rule[index+step+2] == '`':
-                            return ['first',lhs,f'{rule[index+step+1]}`']
+                            return ['first',lhs,f"{rule[index+step+1]}`"]
                         else:
-                            return ['first',lhs,f'{rule[index+step+1]}']
+                            return ['first',lhs,rule[index+step+1]]
                     except:
-                        return ['first',lhs,f'{rule[index+step+1]}`']
-                    
+                        return ['first',lhs,rule[index+step+1]]
+
+def Follow(rules):
+    Tpattern = re.compile("[a-z]+|\+|\-|\*|\/|\(|\)|\{|\}|\$|\[|\]")
+    NTpattern = re.compile("[A-Z]`?")
+    # initialising the follow with $ symbol
+    # follow[rules[0]] = ['$']
+    for lhs,rhs in rules.items():
+        if not follow:
+            follow[lhs] = ['$']
+        step = 0 if len(lhs) == 1 else 1
+        valueRet = findFollow(lhs,rules)
+        # print(valueRet,lhs,follow)
+        if valueRet[0] == "append":
+            if not lhs in follow:
+                follow[lhs] = []
+            follow[lhs].append(valueRet[1])
+        elif valueRet[0] == "follow":
+            if lhs not in follow:
+                follow[lhs] = []
+            for i in follow[valueRet[1]]:
+                follow[lhs].append(i)
+        else:   #? first to be appended
+            if lhs not in follow:
+                follow[lhs] = []
+            for i in first[valueRet[2]]:
+                if i != epsilon:
+                    follow[lhs].append(i)
+                else:
+                    ruleCopy = rules[valueRet[1]]
+                    ruleCopy[0].replace(valueRet[2],"")
+                    index = ruleCopy[0].find(lhs)
+                    print(index)
+                    try:
+                        if index + step + 1 <= len(ruleCopy)-1:
+                            if Tpattern.match(ruleCopy[0][index+step+1]):
+                                follow[lhs].append(ruleCopy[0][index+step+1])
+                            else:
+                                var = ruleCopy[0][index+step+1]
+                                for j in first[var]:
+                                    follow[lhs].append(j)
+                        else:
+                            for j in follow[valueRet[1]]:
+                                follow[lhs].append(j)
+                    except:
+                            print("")
+    printFF(follow)
+
+
 rules = readFile('LL(1) Parser/rules.txt')
+print('\nGRAMMAR RULES')
 printRules(rules)
-rules = LeftRecursion(rules)
+
+#? left recursion removal
+rules = LR_removal(rules)
+print('\nThe rules after recursion Removal are :')
 printRules(rules)
-rules = LeftFactoring(rules)            
+
+#? left factor removal
+rules = lfremoval(rules)
+print('\nThe rules after Left Factoring removal are :')
 printRules(rules)
+
 rules = maintainOrder(rules)
+print("\n")
 printRules(rules)
-first = FindFirst(rules)
-print('first:',first)
-follow = FindFollow(rules)
-printFF(first,follow,rules)
+
+#? finding first
+print("Finding Firsts:")
+findFirst(rules)
+
+#? find Follow
+print("Finding follows: ")
+Follow(rules)
