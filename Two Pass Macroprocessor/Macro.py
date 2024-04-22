@@ -75,20 +75,20 @@ mend_loc = None
 
 # Store the last occurrence of 'MEND'
 for line_num, line in enumerate(temp_input):
-    for item_num, item in enumerate(line):
-        if 'MEND' in line:
-            mend_loc = line_num
+    if 'MEND' in line:
+        mend_loc = line_num
 
 # Empty the ala list and add arguments (data) in ala list
 ala.clear()
+print(temp_input)
 for line in temp_input[mend_loc+1:]:
-    for item in line:
+    for idx, item in enumerate(line):
         if item in macro_names:
-            next_items = line[item_num + 1:]
+            next_items = line[idx+1:]
             for next_item in next_items:
                 if '=' in next_item:
                     next_item = next_item.split('=')[-1]
-                ala.append(next_item.split('=')[-1].strip())
+                ala.append(next_item)
 
 # Only store unique arguments
 temp_ala = []
@@ -115,9 +115,7 @@ for sublist in mdt_copy:
         if value in arg_data_map:
             sublist[idx] = arg_data_map[value]
 
-mdt_sentences_copy = []
-for line in mdt_copy:
-    mdt_sentences_copy.append(' '.join(line))
+mdt_sentences_copy = [' '.join(line) for line in mdt_copy]
 
 print("\nPASS 2:")
 print("\nALA:")
