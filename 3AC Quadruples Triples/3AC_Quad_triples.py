@@ -66,7 +66,7 @@ def convert_to_quadruples(address_code_dict):
    list_no = 0
    for key, value in address_code_dict.items():
        if len(value) <= 2:
-           i = value.find('=')
+        #    i = value.find('=')
            quadruple_list[list_no] = {
             "op": "=", 
             "arg1": value, 
@@ -94,11 +94,15 @@ def convert_to_triples(quadruples_dict):
    dict_no = 0
    for key1, value1 in quadruples_dict.items():
        if value1['op'] == "=":
-           triples_dict[dict_no] = { 'op': value1['op'], 'arg1': value1['result'],
+           triples_dict[dict_no] = { 
+               'op': value1['op'], 
+               'arg1': value1['result'],
                'arg2': f"({int(value1['arg1'][-1]) - 1})" if "t" in value1['arg1'] else value1['arg1']
            }
        else:
-           triples_dict[dict_no] = { 'op': value1['op'], 'arg1': f"({int(value1['arg1'][-1]) - 1})" if "t" in    value1['arg1'] else value1['arg1'],
+           triples_dict[dict_no] = { 
+               'op': value1['op'], 
+               'arg1': f"({int(value1['arg1'][-1]) - 1})" if "t" in    value1['arg1'] else value1['arg1'],
                'arg2': f"({int(value1['arg2'][-1]) - 1})" if "t" in value1['arg2'] else value1['arg2']
            }
        dict_no += 1
@@ -111,14 +115,14 @@ address_codes = convert_to_3ac(postfix)
 print("\nTHREE ADDRESS CODE")
 for key, value in address_codes.items():
    print(f'{key} = {value}')
-quadruples = convert_to_quadruples(address_codes)
 
+quadruples = convert_to_quadruples(address_codes)
 print("\nQUADRUPLES")
 print("\top  arg1  arg2  result")
 for key, value in quadruples.items():
    print(f"{key}\t{value['op']}\t {value['arg1']}\t\t{value['arg2']}\t {value['result']}")
-triples = convert_to_triples(quadruples)
 
+triples = convert_to_triples(quadruples)
 print("\nTRIPLES")
 print("\top  arg1  arg2")
 for key, value in triples.items():
