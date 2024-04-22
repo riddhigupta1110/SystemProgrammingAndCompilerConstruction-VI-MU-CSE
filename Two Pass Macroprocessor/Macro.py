@@ -10,7 +10,7 @@ mnt = {}
 mdt_copy = []
 
 # Read the source.txt file and store it in temp_input list
-with open('Two Pass Macroprocessor/source.txt', 'r') as input_file:
+with open('source.txt', 'r') as input_file:
     temp_input = [line.strip() for line in input_file]
 
 # PASS 1
@@ -80,7 +80,6 @@ for line_num, line in enumerate(temp_input):
 
 # Empty the ala list and add arguments (data) in ala list
 ala.clear()
-print(temp_input)
 for line in temp_input[mend_loc+1:]:
     for idx, item in enumerate(line):
         if item in macro_names:
