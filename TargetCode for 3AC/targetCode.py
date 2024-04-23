@@ -1,8 +1,3 @@
-#code generation
-# taking lines of code as input and processing them to generate
-# assembly code which achieves the desired task
-# output format --> statements, code, register, address desc
-
 operators = ['+','-','*','/']
 register = {}
 temp_count = 0
@@ -98,4 +93,3 @@ def processing(rules):
 
 rules = readFile('TargetCode for 3AC/input.txt')
 processing(rules)
-    
