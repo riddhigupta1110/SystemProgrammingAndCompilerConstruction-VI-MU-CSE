@@ -51,6 +51,7 @@ Using Visual Studio Code:
 
 ### For Compiling and Executing Lex file:
 Use the following commands in the same order as mentioned:
+
 1.
 ```bash
 flex file_name
